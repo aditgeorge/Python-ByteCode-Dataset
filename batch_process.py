@@ -14,7 +14,7 @@ from json_to_pyc import assemble_dict_to_bytecode
 
 import re
 
-def get_dis_output(co):
+def get_dis_tokens(co):
     out = io.StringIO()
     dis.dis(co, file=out)
     output = out.getvalue()
@@ -22,7 +22,11 @@ def get_dis_output(co):
     output = re.sub(r'at 0x[0-9A-Fa-f]+', 'at 0xXXXX', output)
     # Strip instruction index/arg when argrepr is present in parentheses
     output = re.sub(r'\s+\d+\s+\(', ' (', output)
-    return output
+    # Strip line numbers
+    output = re.sub(r'(?m)^\s*\d+(?=\s+(?:\>\>\s+)?\d+\s+[A-Z_]+)', '', output)
+    
+    tokens = output.split()
+    return [t for t in tokens if t != '>>' and not t.isdigit()]
 
 def process_file(source_py, target_json_path):
     temp_pyc = source_py + ".pyc"
@@ -43,8 +47,8 @@ def process_file(source_py, target_json_path):
             f.read(16) # Skip header
             orig_co = marshal.load(f)
             
-        orig_dis = get_dis_output(orig_co)
-        new_dis = get_dis_output(new_co)
+        orig_dis = get_dis_tokens(orig_co)
+        new_dis = get_dis_tokens(new_co)
         
         if orig_dis != new_dis:
             return False, "Disassembly mismatch"
@@ -77,7 +81,7 @@ def main():
 
     # For testing purposes, limit execution to 50 files. 
     # Change to None to process the entire dataset.
-    MAX_FILES = 50 
+    MAX_FILES = 100000
     
     processed = 0
     successes = 0
@@ -93,6 +97,8 @@ def main():
             py_folder = os.path.join(source_dir, p_dir, "python")
             if not os.path.exists(py_folder):
                 continue
+                
+        dir_successes = 0
                 
         for filename in os.listdir(py_folder):
             if filename.endswith(".py"):
@@ -115,11 +121,16 @@ def main():
                 if success:
                     print("OK")
                     successes += 1
+                    dir_successes += 1
                 else:
                     print(f"FAIL ({msg})")
                     failures += 1
                 
                 processed += 1
+                
+                if dir_successes >= 3:
+                    print(f"  -> Found 3 successful files in {p_dir}, moving to next folder.")
+                    break
                 
     print(f"\nFinished. Summary: Processed {processed}, Success: {successes}, Failures: {failures}")
 

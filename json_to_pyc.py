@@ -21,6 +21,10 @@ def assemble_dict_to_bytecode(code_dict):
     cellvars_list = list(code_dict.get("cellvars", []))
     freevars_list = list(code_dict.get("freevars", []))
     
+    varnames = list(code_dict.get("varnames", []))
+    total_args = bc.argcount + bc.posonlyargcount + bc.kwonlyargcount
+    bc.argnames = varnames[:total_args]
+    
     bc.cellvars = cellvars_list
     bc.freevars = freevars_list
     
@@ -79,6 +83,10 @@ def assemble_dict_to_bytecode(code_dict):
                     arg = CellVar(argrepr)
                 else:
                     arg = FreeVar(argrepr)
+                
+            elif opname == 'COMPARE_OP':
+                from bytecode import Compare
+                arg = Compare(int(raw_arg))
                 
             else:
                 try:
