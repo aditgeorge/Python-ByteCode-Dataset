@@ -1,0 +1,1 @@
+python -m py_compile s007069827.py
