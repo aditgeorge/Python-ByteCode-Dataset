@@ -18,6 +18,15 @@ def assemble_dict_to_bytecode(code_dict):
     bc.first_lineno = code_dict.get("firstlineno", 1)
     bc.filename = code_dict.get("filename", "<string>")
     
+    cellvars_list = list(code_dict.get("cellvars", []))
+    freevars_list = list(code_dict.get("freevars", []))
+    
+    bc.cellvars = cellvars_list
+    bc.freevars = freevars_list
+    
+    cellvars = set(cellvars_list)
+    freevars = set(freevars_list)
+    
     instructions_json = code_dict["instructions"]
     
     # 1. FIRST PASS: MAP JUMP TARGETS TO LABELS
@@ -64,16 +73,25 @@ def assemble_dict_to_bytecode(code_dict):
             elif opname in ['LOAD_NAME', 'STORE_NAME', 'LOAD_FAST', 'STORE_FAST', 'LOAD_GLOBAL', 'STORE_GLOBAL', 'LOAD_ATTR', 'STORE_ATTR', 'LOAD_METHOD', 'IMPORT_NAME', 'IMPORT_FROM', 'DELETE_FAST', 'DELETE_NAME', 'DELETE_GLOBAL']:
                 arg = argrepr
                 
+            elif opname in ['LOAD_DEREF', 'STORE_DEREF', 'DELETE_DEREF', 'LOAD_CLOSURE', 'LOAD_CLASSFREE']:
+                from bytecode import CellVar, FreeVar
+                if argrepr in cellvars:
+                    arg = CellVar(argrepr)
+                else:
+                    arg = FreeVar(argrepr)
+                
             else:
                 try:
                     arg = int(raw_arg)
                 except (ValueError, TypeError):
                     arg = raw_arg
 
+        lineno = item.get("lineno")
+
         if has_arg:
-            bc.append(Instr(opname, arg))
+            bc.append(Instr(opname, arg, lineno=lineno))
         else:
-            bc.append(Instr(opname))
+            bc.append(Instr(opname, lineno=lineno))
 
     return bc
 

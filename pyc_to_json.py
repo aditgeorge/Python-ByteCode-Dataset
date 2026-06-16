@@ -15,11 +15,18 @@ def extract_instructions(c_obj):
         "stacksize": getattr(c_obj, "co_stacksize", 0),
         "flags": getattr(c_obj, "co_flags", 0),
         "firstlineno": getattr(c_obj, "co_firstlineno", 1),
-        "filename": c_obj.co_filename,
+        "filename": getattr(c_obj, "co_filename", "<string>"),
+        "cellvars": list(getattr(c_obj, "co_cellvars", [])),
+        "freevars": list(getattr(c_obj, "co_freevars", [])),
         "instructions": []
     }
     
+    current_lineno = getattr(c_obj, "co_firstlineno", 1)
+    
     for instr in dis.get_instructions(c_obj):
+        if getattr(instr, 'starts_line', None) is not None:
+            current_lineno = instr.starts_line
+            
         argval = instr.argval
         is_code = False
         code_data = None
@@ -44,7 +51,8 @@ def extract_instructions(c_obj):
             "argval_saved": val_to_save,
             "is_code": is_code,
             "code_data": code_data,
-            "target_offset": target_offset
+            "target_offset": target_offset,
+            "lineno": current_lineno
         })
         
     return code_dict
