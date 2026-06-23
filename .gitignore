@@ -2,3 +2,6 @@ venv/
 temp/
 .vscode/
 __pycache__/
+results/
+final_lora_model/
+dataset.jsonl

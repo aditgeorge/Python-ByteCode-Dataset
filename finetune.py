@@ -8,7 +8,7 @@ from transformers import (
     TrainingArguments,
 )
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
-from trl import SFTTrainer
+from trl import SFTTrainer, SFTConfig
 
 # ==========================================
 # HYPERPARAMETERS & CONFIGURATION
@@ -22,11 +22,11 @@ FINAL_MODEL_DIR = "./final_lora_model"
 LORA_R = 16
 LORA_ALPHA = 32
 LORA_DROPOUT = 0.05
-BATCH_SIZE = 4
-GRADIENT_ACCUMULATION_STEPS = 4
+BATCH_SIZE = 1
+GRADIENT_ACCUMULATION_STEPS = 16
 LEARNING_RATE = 2e-4
 NUM_EPOCHS = 3
-MAX_SEQ_LENGTH = 2048
+MAX_SEQ_LENGTH = 1024
 
 def format_instruction(sample):
     """
@@ -68,7 +68,8 @@ def main():
     model = AutoModelForCausalLM.from_pretrained(
         MODEL_NAME,
         quantization_config=bnb_config,
-        device_map="auto"
+        device_map="auto",
+        use_safetensors=True
     )
     
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, trust_remote_code=True)
@@ -88,39 +89,31 @@ def main():
         task_type="CAUSAL_LM",
         target_modules=["q_proj", "k_proj", "v_proj", "o_proj"]
     )
-    model = get_peft_model(model, peft_config)
+
 
     # ==========================================
     # TRAINING
     # ==========================================
-    training_args = TrainingArguments(
+    training_args = SFTConfig(
         output_dir=OUTPUT_DIR,
+        dataset_text_field="text",
+        max_length=MAX_SEQ_LENGTH,
         per_device_train_batch_size=BATCH_SIZE,
         gradient_accumulation_steps=GRADIENT_ACCUMULATION_STEPS,
         learning_rate=LEARNING_RATE,
         logging_steps=10,
         max_steps=-1,
         num_train_epochs=NUM_EPOCHS,
-        evaluation_strategy="steps",
+        eval_strategy="steps",
         eval_steps=100,
         save_strategy="steps",
         save_steps=100,
         optim="paged_adamw_8bit",
-        fp16=True, 
+        bf16=True, 
         run_name="pyc-finetune",
         report_to="none" # change to "wandb" if you use weights and biases
     )
 
-    trainer = SFTTrainer(
-        model=model,
-        train_dataset=train_data,
-        eval_dataset=val_data,
-        peft_config=peft_config,
-        max_seq_length=MAX_SEQ_LENGTH,
-        tokenizer=tokenizer,
-        args=training_args,
-        formatting_func=lambda example: [format_instruction(ex) for ex in zip(*[example[k] for k in example])], # This deals with batching
-    )
 
     # Actually we can map the dataset directly to text to avoid formatting_func bugs
     def map_formatting(example):
@@ -136,10 +129,8 @@ def main():
         train_dataset=train_data,
         eval_dataset=val_data,
         peft_config=peft_config,
-        max_seq_length=MAX_SEQ_LENGTH,
-        tokenizer=tokenizer,
+        processing_class=tokenizer,
         args=training_args,
-        dataset_text_field="text",
     )
 
     print("Starting training...")
