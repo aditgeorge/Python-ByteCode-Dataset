@@ -33,7 +33,7 @@ def dump_code_to_text(c_obj, f, indent=0):
         else:
             arg_display = arg_str
             
-        f.write(f"{indent_str}    {lineno:>4} {instr.offset:>4} {instr.opname:<20} {arg_display}\n")
+        f.write(f"{indent_str}    {lineno:>4} {instr.offset:>4} {instr.opname:<30} {arg_display}\n")
         
         # Recursively handle nested code objects
         if type(instr.argval).__name__ == 'code':

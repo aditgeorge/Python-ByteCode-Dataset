@@ -137,9 +137,15 @@ def parse_code_object(lines, index, indent_level):
         except ValueError:
             offset = 0
             
-        opname = stripped_full[10:30].strip()
-        arg_display = stripped_full[31:].strip()
-        
+        remainder = stripped_full[10:].strip()
+        if remainder:
+            parts = remainder.split(maxsplit=1)
+            opname = parts[0]
+            arg_display = parts[1] if len(parts) > 1 else ""
+        else:
+            opname = ""
+            arg_display = ""
+            
         arg = None
         argrepr = arg_display
         if arg_display:
