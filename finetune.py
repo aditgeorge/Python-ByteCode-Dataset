@@ -62,7 +62,7 @@ def main():
         load_in_4bit=True,
         bnb_4bit_use_double_quant=True,
         bnb_4bit_quant_type="nf4",
-        bnb_4bit_compute_dtype=torch.bfloat16
+        bnb_4bit_compute_dtype=torch.float16
     )
 
     model = AutoModelForCausalLM.from_pretrained(
@@ -109,7 +109,7 @@ def main():
         save_strategy="steps",
         save_steps=100,
         optim="paged_adamw_8bit",
-        bf16=True, 
+        fp16=True, 
         run_name="pyc-finetune",
         report_to="none" # change to "wandb" if you use weights and biases
     )
