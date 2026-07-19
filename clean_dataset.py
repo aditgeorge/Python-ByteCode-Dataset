@@ -89,7 +89,7 @@ if __name__ == "__main__":
     )
 
     # 4. Save the test dataset
-    processed_dataset.save_to_disk('./test_dataset')
+    processed_dataset.save_to_disk('./full_test_dataset')
     
     # --- 5. Analytics & Rate Calculation ---
     total_records = len(processed_dataset)
@@ -100,6 +100,8 @@ if __name__ == "__main__":
         num_proc=num_cores,
         desc="Calculating Success Rate"
     )
+
+    success_dataset.save_to_disk('./clean_test_dataset')
     
     success_count = len(success_dataset)
     failure_count = total_records - success_count
