@@ -5,3 +5,4 @@ __pycache__/
 results/
 final_lora_model/
 dataset.jsonl
+.env

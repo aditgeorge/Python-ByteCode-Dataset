@@ -3,6 +3,7 @@ import io
 import dis
 import multiprocessing
 from datasets import load_dataset
+import os
 
 # Pre-compile regex
 PATTERN = re.compile(r'```(?:python)?\s*(.*?)\s*```', flags=re.DOTALL | re.IGNORECASE)
@@ -48,12 +49,27 @@ def process_and_verify(example):
     return example
 
 if __name__ == "__main__":
-    # Insert your token or set to True if using huggingface-cli login
-    HF_TOKEN = True  # or "hf_your_actual_token_string_here"
+    
+    try:
+        with open('.env') as f:
+            for line in f:
+                if '=' in line and not line.strip().startswith('#'):
+                    key, value = line.strip().split('=', 1)
+                    os.environ[key] = value.strip()  # .strip() removes hidden newlines
+    except FileNotFoundError:
+        print("Notice: No .env file found. Falling back to system environment variables.")
+
+    # 2. Fetch the token 
+    HF_TOKEN = os.getenv("HF_TOKEN")
     
     # 1. Load dataset
     print("Loading dataset metadata...")
-    dataset = load_dataset('your_dataset_name', split='train', token=HF_TOKEN)
+    dataset = load_dataset("jtatman/python-code-dataset-500k",
+                            split="train",
+                            # streaming=True,
+                            # token=HF_TOKEN)
+                            token=True)
+
     
     # --- 2. TEST BATCH: Select only the first 50 records ---
     dataset = dataset.select(range(50))
