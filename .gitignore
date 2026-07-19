@@ -6,3 +6,4 @@ results/
 final_lora_model/
 dataset.jsonl
 .env
+test/
