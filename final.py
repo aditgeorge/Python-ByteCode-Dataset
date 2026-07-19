@@ -5,26 +5,35 @@ import multiprocessing
 from datasets import load_dataset
 import os
 
-# Pre-compile regex
-PATTERN = re.compile(r'```(?:python)?\s*(.*?)\s*```', flags=re.DOTALL | re.IGNORECASE)
+# 1. Primary Pattern: Strict markdown blocks
+PRIMARY_PATTERN = re.compile(r'\`\`\`python(.*?)\`\`\`', flags=re.DOTALL | re.IGNORECASE)
+
+# 2. Fallback Pattern: Grabs everything after "Here is the implementation ... :"
+# The .*? allows for variations like "Here is the implementation of the function:"
+FALLBACK_PATTERN = re.compile(r'Here is the implementation.*?\:\s*(.*?)', flags=re.DOTALL | re.IGNORECASE)
 
 def process_and_verify(example):
     extracted_code = ""
     compilation_status = ""
+    error_message = ""
     bytecode_str = ""
-    
+    extracted_code = ""
     try:
         text = str(example.get('output', '')) 
-        match = PATTERN.search(text)
+        
+        # --- EXTRACTION LOGIC ---
+        match = PRIMARY_PATTERN.search(text)
         
         if match:
             extracted_code = match.group(1).strip()
-            
+        
+        # --- COMPILATION LOGIC ---
+        if extracted_code:
             try:
-                # 1. Compile the code into an Abstract Syntax Tree / code object
+                # Compile to verify valid Python syntax
                 compiled_code = compile(extracted_code, '<string>', 'exec')
                 
-                # 2. Disassemble the code object into a readable bytecode string
+                # Disassemble into a readable bytecode string
                 bytecode_io = io.StringIO()
                 dis.dis(compiled_code, file=bytecode_io)
                 bytecode_str = bytecode_io.getvalue()
@@ -32,34 +41,29 @@ def process_and_verify(example):
                 compilation_status = "Success"
                 
             except SyntaxError as e:
-                compilation_status = f"SyntaxError: {str(e)}"
+                compilation_status = "SyntaxError"
+                error_message = str(e)
             except Exception as e:
-                compilation_status = f"Unexpected Error: {str(e)}"
+                compilation_status = "Unexpected Error"
+                error_message = str(e)
         else:
-            compilation_status = "Extraction Error: No markdown code block found"
+            compilation_status = "Extraction Error"
+            error_message = "No Python code block found in the output."
             
     except Exception as e:
         compilation_status = f"System Error: {str(e)}"
         
     # Add the new columns
     example['python_output'] = extracted_code
-    example['compiled_output'] = compilation_status
+    example['status'] = compilation_status
     example['compiled_bytecode'] = bytecode_str  
+    example['extracted_code'] = extracted_code if extracted_code else "No match found"
+    example['error_message'] = error_message
     
     return example
 
 if __name__ == "__main__":
-    
-    try:
-        with open('.env') as f:
-            for line in f:
-                if '=' in line and not line.strip().startswith('#'):
-                    key, value = line.strip().split('=', 1)
-                    os.environ[key] = value.strip()  # .strip() removes hidden newlines
-    except FileNotFoundError:
-        print("Notice: No .env file found. Falling back to system environment variables.")
 
-    # 2. Fetch the token 
     HF_TOKEN = os.getenv("HF_TOKEN")
     
     # 1. Load dataset
@@ -70,11 +74,10 @@ if __name__ == "__main__":
                             # token=HF_TOKEN)
                             token=True)
 
+    dataset = dataset
     
-    # --- 2. TEST BATCH: Select only the first 50 records ---
-    dataset = dataset.select(range(50))
-    print("Testing on 50 records...")
-    
+    dataset = dataset.add_column("serial_number", range(len(dataset)))
+
     num_cores = multiprocessing.cpu_count()
     print(f"Starting processing across {num_cores} cores...")
 
@@ -86,14 +89,14 @@ if __name__ == "__main__":
     )
 
     # 4. Save the test dataset
-    processed_dataset.save_to_disk('./test/test_processed_code_dataset')
+    processed_dataset.save_to_disk('./test_dataset')
     
     # --- 5. Analytics & Rate Calculation ---
     total_records = len(processed_dataset)
     
     # Filter to find the successes
     success_dataset = processed_dataset.filter(
-        lambda x: x['compiled_output'] == "Success", 
+        lambda x: x['status'] == "Success", 
         num_proc=num_cores,
         desc="Calculating Success Rate"
     )
@@ -113,8 +116,8 @@ if __name__ == "__main__":
     print("="*40)
     
     # Print the first successful row to visually verify the bytecode
-    if success_count > 0:
-        first_success = success_dataset[0]
-        print("\n--- SAMPLE BYTECODE FROM FIRST SUCCESS ---")
-        # Print just the first 500 characters of bytecode so it doesn't flood your screen
-        print(first_success['compiled_bytecode'][:500] + "\n...[truncated]...")
+    # if success_count > 0:
+    #     first_success = success_dataset[0]
+    #     print("\n--- SAMPLE BYTECODE FROM FIRST SUCCESS ---")
+    #     # Print just the first 500 characters of bytecode so it doesn't flood your screen
+    #     print(first_success['compiled_bytecode'][:500] + "\n...[truncated]...")

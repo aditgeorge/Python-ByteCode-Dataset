@@ -6,5 +6,5 @@ results/
 final_lora_model/
 dataset.jsonl
 .env
-test/
+test_dataset/
 .python-version
