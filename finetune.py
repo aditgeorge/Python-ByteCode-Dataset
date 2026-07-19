@@ -95,7 +95,7 @@ def main():
         bf16=True,
         run_name="qwen-bytecode-cot",
         report_to="none",
-        chunk_by_module=False,
+        loss_type="nll"
     )
 
     # ==========================================
