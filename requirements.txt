@@ -6,3 +6,4 @@ datasets>=2.19.0
 trl>=0.8.0
 bytecode>=0.14.0
 ipykernel
+wandb
