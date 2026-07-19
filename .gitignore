@@ -9,3 +9,4 @@ dataset.jsonl
 .python-version
 *_test_dataset/
 *_training_dataset/
+wandb/
