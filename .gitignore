@@ -10,3 +10,4 @@ dataset.jsonl
 *_test_dataset/
 *_training_dataset/
 wandb/
+=0.46.1

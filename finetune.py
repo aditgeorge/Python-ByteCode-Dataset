@@ -1,85 +1,122 @@
+import os
 import torch
 from datasets import load_from_disk
-from transformers import AutoModelForCausalLM, AutoTokenizer
-from peft import LoraConfig, get_peft_model
-from trl import SFTConfig, SFTTrainer
+from transformers import (
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    BitsAndBytesConfig,
+)
+from peft import LoraConfig, prepare_model_for_kbit_training
+from trl import SFTTrainer, SFTConfig
+
+# ==========================================
+# HYPERPARAMETERS & CONFIGURATION
+# ==========================================
+MODEL_NAME = "Qwen/Qwen2.5-Coder-32B-Instruct"
+DATASET_PATH = "./final_training_dataset"   # Path to your pre-formatted dataset
+OUTPUT_DIR = "./results"
+FINAL_MODEL_DIR = "./final_lora_model"
+
+LORA_R = 64
+LORA_ALPHA = 128
+LORA_DROPOUT = 0.05
+BATCH_SIZE = 1
+GRADIENT_ACCUMULATION_STEPS = 16
+LEARNING_RATE = 2e-4
+NUM_EPOCHS = 3
+MAX_SEQ_LENGTH = 4096
 
 def main():
-    # 1. Initialize Logging
-    # Wandb gives you a beautiful web dashboard for training stats
-    # wandb.init(project="bytecode-llm", name="qwen-32b-cot-run")
-
-    # 2. Load Your Prepared Chain of Thought Dataset
     print("Loading dataset...")
-    dataset = load_from_disk('./final_training_dataset')
+    # Load your already-formatted dataset
+    dataset = load_from_disk(DATASET_PATH)
+    
+    # Split train/val
+    dataset = dataset.train_test_split(test_size=0.05)
+    train_data = dataset['train']
+    val_data = dataset['test']
+    print(f"Train size: {len(train_data)} | Val size: {len(val_data)}")
 
-    # 3. Load Tokenizer & Model
+    # ==========================================
+    # LOAD MODEL WITH QLORA (4-bit)
+    # ==========================================
     print("Loading model and tokenizer...")
-    model_id = "Qwen/Qwen2.5-Coder-32B-Instruct"
+    bnb_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_use_double_quant=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_compute_dtype=torch.bfloat16
+    )
 
-    tokenizer = AutoTokenizer.from_pretrained(model_id)
-    if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
-
-    # Load model with bfloat16 and Flash Attention 2 to fit in VRAM
     model = AutoModelForCausalLM.from_pretrained(
-        model_id,
-        device_map="auto", # Automatically distributes across your GPUs
-        torch_dtype=torch.bfloat16,
+        MODEL_NAME,
+        quantization_config=bnb_config,
+        device_map="auto",
+        use_safetensors=True,
         attn_implementation="sdpa"
     )
+    
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, trust_remote_code=True)
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+    tokenizer.padding_side = "right" 
 
-    # 4. Configure LoRA (Low-Rank Adaptation)
-    print("Configuring LoRA...")
-    lora_config = LoraConfig(
-        r=64,                # High rank to capture complex logic mapping
-        lora_alpha=128,
-        target_modules="all-linear", # Target all linear layers for maximum capability
-        lora_dropout=0.05,
+    # ==========================================
+    # LORA CONFIGURATION
+    # ==========================================
+    model = prepare_model_for_kbit_training(model)
+    
+    peft_config = LoraConfig(
+        r=LORA_R,
+        lora_alpha=LORA_ALPHA,
+        lora_dropout=LORA_DROPOUT,
         bias="none",
-        task_type="CAUSAL_LM"
+        task_type="CAUSAL_LM",
+        target_modules="all-linear"
     )
-    model = get_peft_model(model, lora_config)
-    model.print_trainable_parameters() # Shows how many parameters you are actually training
 
-    # 5. Set Training Arguments
+    # ==========================================
+    # TRAINING CONFIGURATION
+    # ==========================================
     training_args = SFTConfig(
-        output_dir="./bytecode_cot_model_checkpoints",
-        per_device_train_batch_size=4,   # Reduce to 2 or 1 if you get Out Of Memory (OOM) errors
-        gradient_accumulation_steps=8,   # Effective batch size = batch_size * gradient_steps * GPUs
-        learning_rate=1e-4,
-        lr_scheduler_type="cosine",
-        warmup_ratio=0.05,
+        output_dir=OUTPUT_DIR,
+        dataset_text_field="text",       # Directly reads your existing 'text' column
+        max_length=MAX_SEQ_LENGTH,
+        per_device_train_batch_size=BATCH_SIZE,
+        gradient_accumulation_steps=GRADIENT_ACCUMULATION_STEPS,
+        learning_rate=LEARNING_RATE,
         logging_steps=5,
-        num_train_epochs=3,              # 3 full passes over your dataset
-        bf16=True,                       # Fast mixed-precision training
-        optim="adamw_torch_fused",
+        num_train_epochs=NUM_EPOCHS,
+        eval_strategy="steps",
+        eval_steps=100,
+        save_strategy="steps",
+        save_steps=100,
+        optim="paged_adamw_8bit",
+        bf16=True,
+        run_name="qwen-bytecode-cot",
         report_to="none",
-        save_strategy="epoch",  
-        dataset_text_field="text",       # Points to the 'text' column we created earlier
-        max_length=4096,             # Large enough to hold your scratchpad + bytecode
-        packing=False                # Save a checkpoint at the end of every epoch
+        chunk_by_module=False,
     )
 
-    # 6. Initialize SFTTrainer
-    print("Initializing trainer...")
+    # ==========================================
+    # INITIALIZE & START TRAINING
+    # ==========================================
     trainer = SFTTrainer(
         model=model,
-        train_dataset=dataset,
-        args=training_args
+        train_dataset=train_data,
+        eval_dataset=val_data,
+        peft_config=peft_config,
+        processing_class=tokenizer,
+        args=training_args,
     )
 
-    # 7. Start Training
     print("Starting training!")
     trainer.train()
 
-    # 8. Save the final adapter model
-    print("Saving final model...")
-    trainer.model.save_pretrained("./final_bytecode_lora_cot")
-    tokenizer.save_pretrained("./final_bytecode_lora_cot")
-    
-    # wandb.finish()
-    print("Training complete!")
+    print(f"Saving final model adapter to {FINAL_MODEL_DIR}...")
+    trainer.model.save_pretrained(FINAL_MODEL_DIR)
+    tokenizer.save_pretrained(FINAL_MODEL_DIR)
+    print("Done!")
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

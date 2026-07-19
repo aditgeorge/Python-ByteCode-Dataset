@@ -8,3 +8,4 @@ bytecode>=0.14.0
 ipykernel
 wandb
 flash-attn --no-build-isolation
+bitsandbytes>=0.46.1
