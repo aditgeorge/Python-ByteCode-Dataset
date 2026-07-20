@@ -6,14 +6,14 @@ from transformers import (
     AutoTokenizer,
     BitsAndBytesConfig,
 )
-from peft import LoraConfig, prepare_model_for_kbit_training
+from peft import LoraConfig
 from trl import SFTTrainer, SFTConfig
 
 # ==========================================
 # HYPERPARAMETERS & CONFIGURATION
 # ==========================================
 MODEL_NAME = "Qwen/Qwen2.5-Coder-32B-Instruct"
-DATASET_PATH = "./final_training_dataset"   # Path to your pre-formatted dataset
+DATASET_PATH = "./final_training_dataset"   
 OUTPUT_DIR = "./results"
 FINAL_MODEL_DIR = "./final_lora_model"
 
@@ -30,7 +30,7 @@ def main():
     print("Loading dataset...")
     # Load your already-formatted dataset
     dataset = load_from_disk(DATASET_PATH)
-    
+
     # Split train/val
     dataset = dataset.train_test_split(test_size=0.05)
     train_data = dataset['train']
@@ -52,10 +52,11 @@ def main():
         MODEL_NAME,
         quantization_config=bnb_config,
         device_map="auto",
+        max_memory={0: "14GiB", 1: "22GiB", 2: "22GiB", 3: "22GiB"},
         use_safetensors=True,
         attn_implementation="sdpa"
     )
-    
+
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, trust_remote_code=True)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
@@ -64,15 +65,13 @@ def main():
     # ==========================================
     # LORA CONFIGURATION
     # ==========================================
-    model = prepare_model_for_kbit_training(model)
-    
     peft_config = LoraConfig(
         r=LORA_R,
         lora_alpha=LORA_ALPHA,
         lora_dropout=LORA_DROPOUT,
         bias="none",
         task_type="CAUSAL_LM",
-        target_modules="all-linear"
+        target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
     )
 
     # ==========================================
@@ -80,7 +79,7 @@ def main():
     # ==========================================
     training_args = SFTConfig(
         output_dir=OUTPUT_DIR,
-        dataset_text_field="text",       # Directly reads your existing 'text' column
+        dataset_text_field="text",
         max_length=MAX_SEQ_LENGTH,
         per_device_train_batch_size=BATCH_SIZE,
         gradient_accumulation_steps=GRADIENT_ACCUMULATION_STEPS,
