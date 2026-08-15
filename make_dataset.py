@@ -7,23 +7,23 @@ def format_cot_prompt(example):
     bytecode = example['compiled_bytecode']
     
     # Structure the response with the hidden scratchpad block
-    text = f"""Below is an instruction that describes a programming task.
-
-### Instruction:
+    text = f"""<|im_start|>system
+You are an expert programming assistant. You must always think step-by-step inside <scratchpad> tags before providing your final answer.<|im_end|>
+<|im_start|>user
 {instruction}
-
-### Response:
+<|im_start|>assistant
 <scratchpad>
 To ensure accurate bytecode generation, I will write the Python implementation first.
 
 ```python
 {python_code}
 ```
-
+</scratchpad>
 Now, I will translate this Python logic into stack-based bytecode operations.
 ```
 {bytecode}
-```"""
+```
+<|im_end|>"""
     
     # SFTTrainer expects a "text" column
     return {"text": text}
