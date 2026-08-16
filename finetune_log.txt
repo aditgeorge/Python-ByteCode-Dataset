@@ -1,0 +1,74 @@
+Loading dataset...
+Train size: 63298 | Val size: 3332
+Loading model and tokenizer...
+
+Fetching 6 files: 100%|██████████| 6/6 [03:53<00:00, 38.87s/it]
+
+Loading weights: 100%|██████████| 579/579 [00:16<00:00, 35.00it/s]
+
+Adding EOS to train dataset: 100%|██████████| 63298/63298 [00:49<00:00, 1275.00 examples/s]
+
+Tokenizing train dataset: 100%|██████████| 63298/63298 [04:34<00:00, 230.78 examples/s]
+
+Building labels for train dataset: 100%|██████████| 63298/63298 [02:06<00:00, 502.28 examples/s]
+
+Truncating train dataset: 100%|██████████| 63298/63298 [02:06<00:00, 502.27 examples/s]
+
+Adding EOS to eval dataset: 100%|██████████| 3332/3332 [00:00<00:00, 6642.61 examples/s]
+
+Tokenizing eval dataset: 100%|██████████| 3332/3332 [00:18<00:00, 179.85 examples/s]
+
+Building labels for eval dataset: 100%|██████████| 3332/3332 [00:08<00:00, 401.59 examples/s]
+
+Truncating eval dataset: 100%|██████████| 3332/3332 [00:09<00:00, 360.59 examples/s]
+[transformers] The tokenizer has new PAD/BOS/EOS tokens that differ from the model config and generation config. The model config and generation config were aligned accordingly, being updated with the tokenizer's values. Updated tokens: {'bos_token_id': None, 'pad_token_id': 151643}.
+Starting training!
+
+  0%|          | 0/11871 [00:00<?, ?it/s]Traceback (most recent call last):
+  File "/root/Python-ByteCode-Dataset/finetune.py", line 121, in <module>
+    main()
+  File "/root/Python-ByteCode-Dataset/finetune.py", line 113, in main
+    trainer.train()
+  File "/root/Python-ByteCode-Dataset/venv/lib/python3.10/site-packages/transformers/trainer.py", line 1437, in train
+    return inner_training_loop(
+  File "/root/Python-ByteCode-Dataset/venv/lib/python3.10/site-packages/transformers/trainer.py", line 1519, in _inner_training_loop
+    self._run_epoch(
+  File "/root/Python-ByteCode-Dataset/venv/lib/python3.10/site-packages/transformers/trainer.py", line 1747, in _run_epoch
+    tr_loss_step = self.training_step(model, inputs, num_items_in_batch)
+  File "/root/Python-ByteCode-Dataset/venv/lib/python3.10/site-packages/trl/trainer/sft_trainer.py", line 1844, in training_step
+    return super().training_step(*args, **kwargs)
+  File "/root/Python-ByteCode-Dataset/venv/lib/python3.10/site-packages/transformers/trainer.py", line 1919, in training_step
+    loss = self.compute_loss(model, inputs, num_items_in_batch=num_items_in_batch)
+  File "/root/Python-ByteCode-Dataset/venv/lib/python3.10/site-packages/trl/trainer/sft_trainer.py", line 1742, in compute_loss
+    (loss, outputs) = super().compute_loss(
+  File "/root/Python-ByteCode-Dataset/venv/lib/python3.10/site-packages/transformers/trainer.py", line 1993, in compute_loss
+    outputs = model(**inputs)
+  File "/root/Python-ByteCode-Dataset/venv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/root/Python-ByteCode-Dataset/venv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/root/Python-ByteCode-Dataset/venv/lib/python3.10/site-packages/accelerate/utils/operations.py", line 943, in forward
+    return model_forward(*args, **kwargs)
+  File "/root/Python-ByteCode-Dataset/venv/lib/python3.10/site-packages/accelerate/utils/operations.py", line 931, in __call__
+    return convert_to_fp32(self.model_forward(*args, **kwargs))
+  File "/root/Python-ByteCode-Dataset/venv/lib/python3.10/site-packages/torch/amp/autocast_mode.py", line 44, in decorate_autocast
+    return func(*args, **kwargs)
+  File "/root/Python-ByteCode-Dataset/venv/lib/python3.10/site-packages/peft/peft_model.py", line 1993, in forward
+    return self.base_model(
+  File "/root/Python-ByteCode-Dataset/venv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/root/Python-ByteCode-Dataset/venv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/root/Python-ByteCode-Dataset/venv/lib/python3.10/site-packages/peft/tuners/tuners_utils.py", line 330, in forward
+    return self.model.forward(*args, **kwargs)
+  File "/root/Python-ByteCode-Dataset/venv/lib/python3.10/site-packages/accelerate/hooks.py", line 192, in new_forward
+    output = module._old_forward(*args, **kwargs)
+  File "/root/Python-ByteCode-Dataset/venv/lib/python3.10/site-packages/transformers/utils/generic.py", line 911, in wrapper
+    output = func(self, *args, **kwargs)
+  File "/root/Python-ByteCode-Dataset/venv/lib/python3.10/site-packages/transformers/models/qwen2/modeling_qwen2.py", line 479, in forward
+    loss = self.loss_function(logits=logits, labels=labels, vocab_size=self.config.vocab_size, **kwargs)
+  File "/root/Python-ByteCode-Dataset/venv/lib/python3.10/site-packages/transformers/loss/loss_utils.py", line 59, in ForCausalLMLoss
+    logits = logits.float()
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 714.00 MiB. GPU 3 has a total capacity of 23.67 GiB of which 537.25 MiB is free. Process 884442 has 16.77 GiB memory in use. Process 1082785 has 6.35 GiB memory in use. Of the allocated memory 5.87 GiB is allocated by PyTorch, and 240.33 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+
+  0%|          | 0/11871 [00:01<?, ?it/s]

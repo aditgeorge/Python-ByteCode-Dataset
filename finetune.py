@@ -12,7 +12,7 @@ from trl import SFTTrainer, SFTConfig
 # ==========================================
 # HYPERPARAMETERS & CONFIGURATION
 # ==========================================
-MODEL_NAME = "Qwen/Qwen2.5-Coder-32B-Instruct"
+MODEL_NAME = "Qwen/Qwen2.5-Coder-14B-Instruct"
 DATASET_PATH = "./final_training_dataset"   
 OUTPUT_DIR = "./results"
 FINAL_MODEL_DIR = "./final_lora_model"
