@@ -10,4 +10,9 @@ Ctrl + B, then D
 
 tmux attach -t trainer
 
-python finetune.py 2>&1 | tee finetune_log.txt 
+To finetune:
+python finetune.py 2>&1 | tee "./logs/finetune_log_$(date +'%Y-%m-%d_%H-%M-%S').txt"
+
+or 
+chmod +x finetune
+./finetune
