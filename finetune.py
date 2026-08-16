@@ -52,7 +52,7 @@ def main():
         MODEL_NAME,
         quantization_config=bnb_config,
         device_map="auto",
-        max_memory={0: "22GiB", 1: "22GiB", 2: "22GiB", 3: "10GiB"},
+        # max_memory={0: "22GiB", 1: "22GiB", 2: "22GiB", 3: "10GiB"},
         use_safetensors=True,
         attn_implementation="sdpa"
     )
