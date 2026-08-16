@@ -1,3 +1,4 @@
 #!/bin/bash
+mkdir -p logs
 echo "Starting fine-tuning process..."
 python finetune.py 2>&1 | tee "./logs/finetune_log_$(date +'%Y-%m-%d_%H-%M-%S').txt"
