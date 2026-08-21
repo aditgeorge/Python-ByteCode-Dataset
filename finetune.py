@@ -12,7 +12,9 @@ from trl import SFTTrainer, SFTConfig
 # ==========================================
 # HYPERPARAMETERS & CONFIGURATION
 # ==========================================
-MODEL_NAME = "Qwen/Qwen2.5-Coder-14B-Instruct"
+MODEL_NAME = "LLM4Binary/llm4decompile-9b-v2"
+# MODEL_NAME = "Qwen/Qwen2.5-Coder-14B-Instruct"
+# MODEL_NAME = "Qwen/Qwen2.5-Coder-32B-Instruct"
 DATASET_PATH = "./final_training_dataset"   
 OUTPUT_DIR = "./results"
 FINAL_MODEL_DIR = "./final_lora_model"
@@ -82,6 +84,8 @@ def main():
         dataset_text_field="text",
         max_length=MAX_SEQ_LENGTH,
         per_device_train_batch_size=BATCH_SIZE,
+        per_device_eval_batch_size=BATCH_SIZE,  
+        eval_accumulation_steps=4,
         gradient_accumulation_steps=GRADIENT_ACCUMULATION_STEPS,
         learning_rate=LEARNING_RATE,
         logging_steps=5,
