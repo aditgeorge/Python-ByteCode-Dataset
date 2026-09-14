@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import torch
 import pandas as pd
 import time
@@ -11,7 +13,8 @@ from tqdm import tqdm
 # ---------------------------------------------------------
 # 1. Logging Setup
 # ---------------------------------------------------------
-LOG_FILE = "inference_log.txt"
+timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+LOG_FILE = f"inference_log_{timestamp}.txt"
 
 # Set up logging to output to both console and log file
 logging.basicConfig(
@@ -64,6 +67,7 @@ def main():
     logger.info(f"Loading dataset from {DATASET_PATH}...")
     dataset = load_from_disk(DATASET_PATH)
     ogdataset = dataset.to_pandas()
+    ogdataset = ogdataset[ogdataset["status"].eq("Success")].copy()
     total_rows = len(ogdataset)
     logger.info(f"Dataset loaded successfully. Total rows to process: {total_rows}")
 

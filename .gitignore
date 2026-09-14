@@ -12,3 +12,4 @@ dataset.jsonl
 wandb/
 =0.46.1
 logs/
+infer.sh
