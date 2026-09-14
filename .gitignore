@@ -13,3 +13,5 @@ wandb/
 =0.46.1
 logs/
 infer.sh
+inference_results_dataset_*/
+inference_log_*.txt

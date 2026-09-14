@@ -14,7 +14,7 @@ from tqdm import tqdm
 # 1. Logging Setup
 # ---------------------------------------------------------
 timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-LOG_FILE = f"inference_log_{timestamp}.txt"
+LOG_FILE = f"./logs/inference_log_{timestamp}.txt"
 
 # Set up logging to output to both console and log file
 logging.basicConfig(
@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 BASE_MODEL_NAME = "LLM4Binary/llm4decompile-9b-v2" 
 ADAPTER_DIR = "./final_lora_model"
 DATASET_PATH = "./final_training_dataset"
-OUTPUT_SAVE_PATH = "./inference_results_dataset"
+OUTPUT_SAVE_PATH = f"./inference_results_dataset_{timestamp}"
 # IMPORTANT: Change this to the column that actually holds your input text!
 INPUT_COLUMN_NAME = "instruction" 
 
